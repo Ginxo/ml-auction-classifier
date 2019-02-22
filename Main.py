@@ -8,98 +8,58 @@ from bs4 import BeautifulSoup
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from domain.TechArticlesConstants import FEATURE_VECTOR, LABEL
 from domain.WebInfoFactory import WebInfoFactory
+from ml_algorithms.KNearestAlgorithm import KNearestAlgorithm
 from service.FrequencySummarizer import FrequencySummarizer
 from utils.CrawlerUtils import CrawlerUtils
+from utils.SummarizeUtils import SummarizeUtils
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_TECH_LABEL = 'Tech'
+_NON_TECH_LABEL = 'Non-Tech'
 
-newYorkTimesTechArticles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/technology', ['2019', 'technology'])
-logger.info('NYTimes tech articles {}'.format(len(newYorkTimesTechArticles)))
-
-newYorkTimesNonTechArticles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/sports', ['2019', 'sport'],)
-logger.info('NYTimes non-tech articles {}'.format(len(newYorkTimesNonTechArticles)))
-
-washingtonPostTechArticles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/business/technology', ['2019', 'technology'])
-logger.info('Washingtonpost tech articles {}'.format(len(washingtonPostTechArticles)))
-
-washingtonPostNonTechArticles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/sports', ['2019', 'sport'])
-logger.info('Washingtonpost non-tech articles {}'.format(len(washingtonPostNonTechArticles)))
+nyt_tech_articles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/technology', ['2019', 'technology'])
+nyt_non_tech_articles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/sports', ['2019', 'sport'])
+wp_tech_articles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/business/technology',
+                                              ['2019', 'technology'])
+wp_non_tech_articles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/sports', ['2019', 'sport'])
+tech_articles = {**nyt_tech_articles, **wp_tech_articles}
+non_tech_articles = {**nyt_non_tech_articles, **wp_non_tech_articles}
 
 # Now let's collect these article summaries in an easy to classify form
-articleSummaries = {}
+tech_summaries = SummarizeUtils.articles_sumarizator(tech_articles, _TECH_LABEL)
+non_tech_summaries = SummarizeUtils.articles_sumarizator(non_tech_articles, _NON_TECH_LABEL)
+article_summaries = {**tech_summaries, **non_tech_summaries}
 
-for tech_articles in [newYorkTimesTechArticles, washingtonPostTechArticles]:
-    for articleUrl in tech_articles:
-        if tech_articles[articleUrl][0] is not None:
-            if len(tech_articles[articleUrl][0]) > 0:
-                frequencySummarizer = FrequencySummarizer()
-                summary = frequencySummarizer.extract_features(tech_articles[articleUrl], 25)
-                articleSummaries[articleUrl] = {'feature-vector': summary, 'label': 'Tech'}
+#KNearest
+KNearestAlgorithm.run('https://www.cnet.com/news/galaxy-s10-plus-ongoing-review-whats-good-bad-so-far-samsung/',
+                      article_summaries)
 
-for non_tech_articles in [newYorkTimesNonTechArticles, washingtonPostNonTechArticles]:
-    for articleUrl in non_tech_articles:
-        if non_tech_articles[articleUrl][0] is not None:
-            if len(non_tech_articles[articleUrl][0]) > 0:
-                frequencySummarizer = FrequencySummarizer()
-                summary = frequencySummarizer.extract_features(non_tech_articles[articleUrl], 25)
-                articleSummaries[articleUrl] = {'feature-vector': summary, 'label': 'Non-Tech'}
-
-
-# In[ ]:
-
-def getDoxyDonkeyText(testUrl, token):
-    response = requests.get(testUrl)
-    soup = BeautifulSoup(response.content)
-    page = str(soup)
-    title = soup.find("title").text
-    mydivs = soup.findAll("div", {"class": token})
-    text = ''.join(map(lambda p: p.text, mydivs))
-    return text, title
-    # our test instance, just like our training data, is nicely
-    # setup as a (title,text) tuple
-
-
-
-article_to_test_url='https://www.cnet.com/news/galaxy-s10-plus-ongoing-review-whats-good-bad-so-far-samsung/'
-article_to_test = WebInfoFactory.url_to_web_info(article_to_test_url).get_words()
-frequencySummarizer = FrequencySummarizer()
-testArticleSummary = frequencySummarizer.extract_features(article_to_test, 25)
-
-similarities = {}
-for articleUrl in articleSummaries:
-    oneArticleSummary = articleSummaries[articleUrl]['feature-vector']
-    similarities[articleUrl] = len(set(testArticleSummary).intersection(set(oneArticleSummary)))
-
-labels = defaultdict(int)
-knn = nlargest(5, similarities, key=similarities.get)
-for oneNeighbor in knn:
-    labels[articleSummaries[oneNeighbor]['label']] += 1
-
-logger.info('The article {} has these articles as the most coincidence articles {}'.format(knn))
-
-
-cumulativeRawFrequencies = {'Tech': defaultdict(int), 'Non-Tech': defaultdict(int)}
-trainingData = {'Tech': newYorkTimesTechArticles, 'Non-Tech': newYorkTimesNonTechArticles}
+#Naive Bayes
+cumulativeRawFrequencies = {_TECH_LABEL: defaultdict(int), _NON_TECH_LABEL: defaultdict(int)}
+trainingData = {_TECH_LABEL: tech_articles, _NON_TECH_LABEL: non_tech_articles}
 for label in trainingData:
-    for articleUrl in trainingData[label]:
-        if len(trainingData[label][articleUrl][0]) > 0:
+    for article_url in trainingData[label]:
+        if len(trainingData[label][article_url][0]) > 0:
             frequencySummarizer = FrequencySummarizer()
-            rawFrequencies = frequencySummarizer.extract_raw_frequencies(trainingData[label][articleUrl])
+            rawFrequencies = frequencySummarizer.extract_raw_frequencies(trainingData[label][article_url])
             for word in rawFrequencies:
                 cumulativeRawFrequencies[label][word] += rawFrequencies[word]
 
 # In[ ]:
 
+article = WebInfoFactory.url_to_web_info('https://www.cnet.com/news/galaxy-s10-plus-ongoing-review-whats-good-bad-so-far-samsung/').get_words()
+test_article_summary = FrequencySummarizer().extract_features(article, 25)
 techiness = 1.0
 nontechiness = 1.0
-for word in testArticleSummary:
+for word in test_article_summary:
     # for each 'feature' of the test instance -
-    if word in cumulativeRawFrequencies['Tech']:
-        techiness *= 1e3 * cumulativeRawFrequencies['Tech'][word] / float(
-            sum(cumulativeRawFrequencies['Tech'].values()))
+    if word in cumulativeRawFrequencies[_TECH_LABEL]:
+        techiness *= 1e3 * cumulativeRawFrequencies[_TECH_LABEL][word] / float(
+            sum(cumulativeRawFrequencies[_TECH_LABEL].values()))
         # we multiply the techiness by the probability of this word
         # appearing in a tech article (based on the training data)
     else:
@@ -116,9 +76,9 @@ for word in testArticleSummary:
     # copy-pasting code (not a great software development practice) in order
     # to make the logic very clear. Ideally, we would have created a function
     # and called it twice rather than copy-pasting this code. In any event..
-    if word in cumulativeRawFrequencies['Non-Tech']:
-        nontechiness *= 1e3 * cumulativeRawFrequencies['Non-Tech'][word] / float(
-            sum(cumulativeRawFrequencies['Non-Tech'].values()))
+    if word in cumulativeRawFrequencies[_NON_TECH_LABEL]:
+        nontechiness *= 1e3 * cumulativeRawFrequencies[_NON_TECH_LABEL][word] / float(
+            sum(cumulativeRawFrequencies[_NON_TECH_LABEL].values()))
         # we multiply the techiness by the probability of this word
         # appearing in a tech article (based on the training data)
     else:
@@ -129,20 +89,31 @@ for word in testArticleSummary:
 # non-techiness. THis is simply the number of words in the tech and
 # non-tech articles respectively, as a proportion of the total number
 # of words
-techiness *= float(sum(cumulativeRawFrequencies['Tech'].values())) / (
-            float(sum(cumulativeRawFrequencies['Tech'].values())) + float(
-        sum(cumulativeRawFrequencies['Non-Tech'].values())))
-nontechiness *= float(sum(cumulativeRawFrequencies['Non-Tech'].values())) / (
-            float(sum(cumulativeRawFrequencies['Tech'].values())) + float(
-        sum(cumulativeRawFrequencies['Non-Tech'].values())))
+techiness *= float(sum(cumulativeRawFrequencies[_TECH_LABEL].values())) / (
+        float(sum(cumulativeRawFrequencies[_TECH_LABEL].values())) + float(
+    sum(cumulativeRawFrequencies[_NON_TECH_LABEL].values())))
+nontechiness *= float(sum(cumulativeRawFrequencies[_NON_TECH_LABEL].values())) / (
+        float(sum(cumulativeRawFrequencies[_TECH_LABEL].values())) + float(
+    sum(cumulativeRawFrequencies[_NON_TECH_LABEL].values())))
 if techiness > nontechiness:
-    label = 'Tech'
+    label = _TECH_LABEL
 else:
-    label = 'Non-Tech'
+    label = _NON_TECH_LABEL
 print(label, techiness, nontechiness)
 
 
 # In[ ]:
+
+def getDoxyDonkeyText(testUrl, token):
+    response = requests.get(testUrl)
+    soup = BeautifulSoup(response.content)
+    page = str(soup)
+    title = soup.find("title").text
+    mydivs = soup.findAll("div", {"class": token})
+    text = ''.join(map(lambda p: p.text, mydivs))
+    return text, title
+    # our test instance, just like our training data, is nicely
+    # setup as a (title,text) tuple
 
 def getAllDoxyDonkeyPosts(url, links):
     request = urllib.request.Request(url)
@@ -188,8 +159,9 @@ for i, cluster in enumerate(km.labels_):
     frequencySummarizer = FrequencySummarizer()
     summary = frequencySummarizer.extract_features((oneDocument, ""),
                                                    100,
-                                                   [u"according", u"also", u"billion", u"like", u"new", u"one", u"year", u"first",
-                                  u"last"])
+                                                   [u"according", u"also", u"billion", u"like", u"new", u"one", u"year",
+                                                    u"first",
+                                                    u"last"])
     if cluster not in keywords:
         keywords[cluster] = set(summary)
     else:

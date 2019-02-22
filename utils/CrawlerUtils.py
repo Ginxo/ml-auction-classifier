@@ -19,5 +19,7 @@ class CrawlerUtils(object):
 
         FileUtils.save_dictionary(new_url_bodies, CrawlerUtils._CRAWLED_PAGES_CSV_FILE, 'a')
 
-        return {k: v for k, v in url_bodies.items() if
-                UrlUtils.is_valid_url(k, url) and UrlUtils.contains_magic_frags(k, magic_frags)}
+        result = {k: v for k, v in url_bodies.items() if
+                  UrlUtils.is_valid_url(k, url) and UrlUtils.contains_magic_frags(k, magic_frags)}
+        print('{} {} articles {}'.format(url, magic_frags, len(result)))
+        return result
