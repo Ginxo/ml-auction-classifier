@@ -1,10 +1,9 @@
 import itertools
-from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from nltk import sent_tokenize, word_tokenize
 
-from techclassifier.utils.UrlUtils import UrlUtils
+from utils.UrlUtils import UrlUtils
 
 
 class WebInfo:

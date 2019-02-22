@@ -1,8 +1,6 @@
-from techclassifier.domain.WebInfoFactory import WebInfoFactory
-from techclassifier.utils.FileUtils import FileUtils
-from funcy import project
-
-from techclassifier.utils.UrlUtils import UrlUtils
+from domain.WebInfoFactory import WebInfoFactory
+from utils.FileUtils import FileUtils
+from utils.UrlUtils import UrlUtils
 
 
 class CrawlerUtils(object):
@@ -21,4 +19,5 @@ class CrawlerUtils(object):
 
         FileUtils.save_dictionary(new_url_bodies, CrawlerUtils._CRAWLED_PAGES_CSV_FILE, 'a')
 
-        return {k: v for k, v in url_bodies.items() if UrlUtils.is_valid_url(k, url) and UrlUtils.contains_magic_frags(k, magic_frags)}
+        return {k: v for k, v in url_bodies.items() if
+                UrlUtils.is_valid_url(k, url) and UrlUtils.contains_magic_frags(k, magic_frags)}

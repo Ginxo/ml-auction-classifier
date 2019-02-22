@@ -8,65 +8,44 @@ from bs4 import BeautifulSoup
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from techclassifier.service.FrequencySummarizer import FrequencySummarizer
-from techclassifier.utils.CrawlerUtils import CrawlerUtils
+from domain.WebInfoFactory import WebInfoFactory
+from service.FrequencySummarizer import FrequencySummarizer
+from utils.CrawlerUtils import CrawlerUtils
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-urlWashingtonPostNonTech = "https://www.washingtonpost.com/sports"
-urlNewYorkTimesNonTech = "https://www.nytimes.com/section/sports"
-urlWashingtonPostTech = "https://www.washingtonpost.com/business/technology"
-urlNewYorkTimesTech = "https://www.nytimes.com/section/technology"
-washingtonPostTechArticles={}
-washingtonPostNonTechArticles={}
-newYorkTimesTechArticles={}
-newYorkTimesNonTechArticles={}
 
-logger.info('Getting Washingtonpost tech articles')
-washingtonPostTechArticles = CrawlerUtils.scrape_source(urlWashingtonPostTech,
-                                          ['2019', 'technology'])
-logger.info('Washingtonpost tech articles {}'.format(len(washingtonPostTechArticles)))
-
-logger.info('Getting Washingtonpost nont-tech articles')
-washingtonPostNonTechArticles = CrawlerUtils.scrape_source(urlWashingtonPostNonTech,
-                                             ['2019', 'sport'])
-logger.info('Washingtonpost non-tech articles {}'.format(len(washingtonPostNonTechArticles)))
-
-
-
-logger.info('Getting NYTimes tech articles')
-newYorkTimesTechArticles = CrawlerUtils.scrape_source(urlNewYorkTimesTech,
-                                        ['2019', 'technology'])
+newYorkTimesTechArticles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/technology', ['2019', 'technology'])
 logger.info('NYTimes tech articles {}'.format(len(newYorkTimesTechArticles)))
 
-logger.info('Getting NYTimes non-tech articles')
-newYorkTimesNonTechArticles = CrawlerUtils.scrape_source(urlNewYorkTimesNonTech,
-                                           ['2019', 'sport'],)
+newYorkTimesNonTechArticles = CrawlerUtils.scrape_source('https://www.nytimes.com/section/sports', ['2019', 'sport'],)
 logger.info('NYTimes non-tech articles {}'.format(len(newYorkTimesNonTechArticles)))
 
+washingtonPostTechArticles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/business/technology', ['2019', 'technology'])
+logger.info('Washingtonpost tech articles {}'.format(len(washingtonPostTechArticles)))
 
-
-# In[ ]:
+washingtonPostNonTechArticles = CrawlerUtils.scrape_source('https://www.washingtonpost.com/sports', ['2019', 'sport'])
+logger.info('Washingtonpost non-tech articles {}'.format(len(washingtonPostNonTechArticles)))
 
 # Now let's collect these article summaries in an easy to classify form
 articleSummaries = {}
-for techUrlDictionary in [newYorkTimesTechArticles, washingtonPostTechArticles]:
-    for articleUrl in techUrlDictionary:
-        if techUrlDictionary[articleUrl][0] is not None:
-            if len(techUrlDictionary[articleUrl][0]) > 0:
-                fs = FrequencySummarizer()
-                summary = fs.extractFeatures(techUrlDictionary[articleUrl], 25)
-                articleSummaries[articleUrl] = {'feature-vector': summary,
-                                                'label': 'Tech'}
-for nontechUrlDictionary in [newYorkTimesNonTechArticles, washingtonPostNonTechArticles]:
-    for articleUrl in nontechUrlDictionary:
-        if nontechUrlDictionary[articleUrl][0] is not None:
-            if len(nontechUrlDictionary[articleUrl][0]) > 0:
-                fs = FrequencySummarizer()
-                summary = fs.extractFeatures(nontechUrlDictionary[articleUrl], 25)
-                articleSummaries[articleUrl] = {'feature-vector': summary,
-                                                'label': 'Non-Tech'}
+
+for tech_articles in [newYorkTimesTechArticles, washingtonPostTechArticles]:
+    for articleUrl in tech_articles:
+        if tech_articles[articleUrl][0] is not None:
+            if len(tech_articles[articleUrl][0]) > 0:
+                frequencySummarizer = FrequencySummarizer()
+                summary = frequencySummarizer.extract_features(tech_articles[articleUrl], 25)
+                articleSummaries[articleUrl] = {'feature-vector': summary, 'label': 'Tech'}
+
+for non_tech_articles in [newYorkTimesNonTechArticles, washingtonPostNonTechArticles]:
+    for articleUrl in non_tech_articles:
+        if non_tech_articles[articleUrl][0] is not None:
+            if len(non_tech_articles[articleUrl][0]) > 0:
+                frequencySummarizer = FrequencySummarizer()
+                summary = frequencySummarizer.extract_features(non_tech_articles[articleUrl], 25)
+                articleSummaries[articleUrl] = {'feature-vector': summary, 'label': 'Non-Tech'}
 
 
 # In[ ]:
@@ -83,13 +62,11 @@ def getDoxyDonkeyText(testUrl, token):
     # setup as a (title,text) tuple
 
 
-testUrl = "http://doxydonkey.blogspot.in"
-testArticle = getDoxyDonkeyText(testUrl, "post-body")
 
-fs = FrequencySummarizer()
-testArticleSummary = fs.extractFeatures(testArticle, 25)
-
-# In[ ]:
+article_to_test_url='https://www.cnet.com/news/galaxy-s10-plus-ongoing-review-whats-good-bad-so-far-samsung/'
+article_to_test = WebInfoFactory.url_to_web_info(article_to_test_url).get_words()
+frequencySummarizer = FrequencySummarizer()
+testArticleSummary = frequencySummarizer.extract_features(article_to_test, 25)
 
 similarities = {}
 for articleUrl in articleSummaries:
@@ -101,17 +78,16 @@ knn = nlargest(5, similarities, key=similarities.get)
 for oneNeighbor in knn:
     labels[articleSummaries[oneNeighbor]['label']] += 1
 
-nlargest(1, labels, key=labels.get)
+logger.info('The article {} has these articles as the most coincidence articles {}'.format(knn))
 
-# In[ ]:
 
 cumulativeRawFrequencies = {'Tech': defaultdict(int), 'Non-Tech': defaultdict(int)}
 trainingData = {'Tech': newYorkTimesTechArticles, 'Non-Tech': newYorkTimesNonTechArticles}
 for label in trainingData:
     for articleUrl in trainingData[label]:
         if len(trainingData[label][articleUrl][0]) > 0:
-            fs = FrequencySummarizer()
-            rawFrequencies = fs.extractRawFrequencies(trainingData[label][articleUrl])
+            frequencySummarizer = FrequencySummarizer()
+            rawFrequencies = frequencySummarizer.extract_raw_frequencies(trainingData[label][articleUrl])
             for word in rawFrequencies:
                 cumulativeRawFrequencies[label][word] += rawFrequencies[word]
 
@@ -209,10 +185,10 @@ km.fit(X)
 keywords = {}
 for i, cluster in enumerate(km.labels_):
     oneDocument = documentCorpus[i]
-    fs = FrequencySummarizer()
-    summary = fs.extractFeatures((oneDocument, ""),
-                                 100,
-                                 [u"according", u"also", u"billion", u"like", u"new", u"one", u"year", u"first",
+    frequencySummarizer = FrequencySummarizer()
+    summary = frequencySummarizer.extract_features((oneDocument, ""),
+                                                   100,
+                                                   [u"according", u"also", u"billion", u"like", u"new", u"one", u"year", u"first",
                                   u"last"])
     if cluster not in keywords:
         keywords[cluster] = set(summary)

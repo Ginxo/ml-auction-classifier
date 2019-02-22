@@ -1,9 +1,8 @@
 import logging
 import urllib
-
 from requests import HTTPError
 
-from techclassifier.domain.WebInfo import WebInfo
+from domain.WebInfo import WebInfo
 
 
 class WebInfoFactory(object):
