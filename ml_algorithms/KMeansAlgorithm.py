@@ -3,7 +3,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from domain.TechArticlesConstants import ENGLISH_STOP_WORDS
+from domain.TechArticlesConstants import ENGLISH_STOP_WORDS, LABELS_COLOR_MAP
 from domain.WebInfoFactory import WebInfoFactory
 from service.FrequencySummarizer import FrequencySummarizer
 
@@ -42,6 +42,7 @@ class KMeansAlgorithm(object):
         print('Document {} has this similarities {}'.format(url,
                                                             KMeansAlgorithm._get_similarities(url, keyword_clusters)))
         KMeansAlgorithm._plot(kmeans, vectorized)
+        KMeansAlgorithm._plot_centroids(kmeans, vectorized)
 
     @staticmethod
     def _get_similarities(url, keyword_clusters):
@@ -60,16 +61,24 @@ class KMeansAlgorithm(object):
 
     @staticmethod
     def _plot(kmeans, vectorized):
-        labels_color_map = {
-            0: '#20b2aa', 1: '#ff7373', 2: '#ffe4e1', 3: '#005073', 4: '#4d0404',
-            5: '#ccc0ba', 6: '#4700f9', 7: '#f6f900', 8: '#00f91d', 9: '#da8c49'
-        }
-        print(kmeans.cluster_centers_)
+
         pca_num_components = 2
         reduced_data = PCA(n_components=pca_num_components).fit_transform(vectorized.todense())
         fig, ax = plt.subplots()
         for index, instance in enumerate(reduced_data):
             pca_comp_1, pca_comp_2 = reduced_data[index]
-            color = labels_color_map[kmeans.labels_[index]]
+            color = LABELS_COLOR_MAP[kmeans.labels_[index]]
+            ax.scatter(pca_comp_1, pca_comp_2, c=color)
+        plt.show()
+
+    @staticmethod
+    def _plot_centroids(kmeans, vectorized):
+        print(kmeans.cluster_centers_)
+        pca_num_components = 2
+        reduced_data = PCA(n_components=pca_num_components).fit_transform(kmeans.cluster_centers_)
+        fig, ax = plt.subplots()
+        for index, instance in enumerate(reduced_data):
+            pca_comp_1, pca_comp_2 = reduced_data[index]
+            color = LABELS_COLOR_MAP[index] # the colours don't match with the label ones
             ax.scatter(pca_comp_1, pca_comp_2, c=color)
         plt.show()

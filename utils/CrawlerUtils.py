@@ -12,12 +12,12 @@ class CrawlerUtils(object):
 
         url_bodies = FileUtils.read_dictionary(CrawlerUtils._CRAWLED_PAGES_CSV_FILE)
         new_url_bodies = {}
-        for link in (link for link in WebInfoFactory.url_to_web_info(url).get_links(magic_frags) if
-                     link not in url_bodies):
-            web_info = WebInfoFactory.url_to_web_info(link)
-            new_url_bodies[link] = web_info.get_words()
-            url_bodies[link] = new_url_bodies[link]
-            print('{} scraped'.format(link))
+        # for link in (link for link in WebInfoFactory.url_to_web_info(url).get_links(magic_frags) if
+        #              link not in url_bodies):
+        #     web_info = WebInfoFactory.url_to_web_info(link)
+        #     new_url_bodies[link] = web_info.get_words()
+        #     url_bodies[link] = new_url_bodies[link]
+        #     print('{} scraped'.format(link))
 
         FileUtils.save_dictionary(new_url_bodies, CrawlerUtils._CRAWLED_PAGES_CSV_FILE, 'a')
 
