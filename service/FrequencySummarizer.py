@@ -1,18 +1,14 @@
 from collections import defaultdict
 from heapq import nlargest
-from string import punctuation
 
-from nltk.corpus import stopwords
-
-from domain.TechArticlesConstants import TECH_LABEL, NON_TECH_LABEL
+from domain.TechArticlesConstants import TECH_LABEL, NON_TECH_LABEL, ENGLISH_STOP_WORDS
 
 
 class FrequencySummarizer:
-    def __init__(self, max_cut=0.95, min_cut=0.1):
-        self._max_cut = max_cut
+    def __init__(self, min_cut=0.1, max_cut=0.9):
         self._min_cut = min_cut
-        self._stopwords = set(
-            stopwords.words('english') + list(punctuation) + ["'s", '"', "'", "", '—', '’', "”", "“", '``'])
+        self._max_cut = max_cut
+        self._stopwords = ENGLISH_STOP_WORDS
 
     @staticmethod
     def get_word_frequencies(training_data):
@@ -25,8 +21,8 @@ class FrequencySummarizer:
                         word_frequencies[label][word] += raw_frequencies[word]
         return word_frequencies
 
-    def extract_features(self, article, n, customStopWords=None):
-        self._freq = self._compute_frequencies(article, customStopWords)
+    def extract_features(self, article_content, n, custom_stop_words=None):
+        self._freq = self._compute_frequencies(article_content, custom_stop_words)
         if n < 0:
             return nlargest(len(self._freq_keys()), self._freq, key=self._freq.get)
         else:
@@ -38,11 +34,11 @@ class FrequencySummarizer:
             freq[word] += 1
         return freq
 
-    def _compute_frequencies(self, article, custom_stop_words=None):
-        freq = defaultdict(float)
+    def _compute_frequencies(self, article_content, custom_stop_words=None):
+        freq = defaultdict(int)
         stop_words = (
             set(self._stopwords) if custom_stop_words is None else set(custom_stop_words).union(self._stopwords))
-        for word in (word for word in article.split() if word not in stop_words):
+        for word in (word for word in article_content.split() if word not in stop_words):
             freq[word] += 1
         m = float(max(freq.values()))
         for word in list(freq.keys()):
