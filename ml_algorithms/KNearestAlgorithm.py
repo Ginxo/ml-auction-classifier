@@ -10,14 +10,14 @@ from utils.SummarizeUtils import SummarizeUtils
 class KNearestAlgorithm(object):
 
     @staticmethod
-    def run(url, tech_articles, non_tech_articles):
+    def run(url, tech_articles, non_tech_articles, k=5):
         print('-----------------------------------------')
         print('------------ KNearest algorithm ---------')
         article_summaries = KNearestAlgorithm._get_summary(tech_articles, non_tech_articles)
         similarities = KNearestAlgorithm._get_similarities(url, article_summaries)
 
         labels = defaultdict(int)
-        k_nearest_neighbours = nlargest(5, similarities, key=similarities.get)
+        k_nearest_neighbours = nlargest(k, similarities, key=similarities.get)
         for one_neighbour in k_nearest_neighbours:
             # how many tech or non-tech articles it is similar
             labels[article_summaries[one_neighbour][LABEL]] += 1
