@@ -36,25 +36,14 @@ class KMeansAlgorithm(object):
 
         prediction = KMeansAlgorithm._prediction(url, kmeans, vectorizer)
         print('The url {} is in the cluster {}'.format(url, prediction))
-        KMeansAlgorithm._plot(kmeans, vectorized, prediction)
-
-    @staticmethod
-    def _get_similarities(url, keyword_clusters):
-        result = {}
-        article_to_check = WebInfoFactory.url_to_web_info(url).get_words()
-        article_summary_to_check = FrequencySummarizer().extract_features(article_to_check, 25)
-
-        for keyword_cluster in keyword_clusters:
-            result[keyword_cluster] = '{}%'.format(
-                KMeansAlgorithm._calculate_percentage(article_summary_to_check, keyword_clusters[keyword_cluster]))
-        return result
+        KMeansAlgorithm._plot(kmeans, vectorized)
 
     @staticmethod
     def _calculate_percentage(article_summary_to_check, keyword_cluster):
         return len(set(article_summary_to_check).intersection(keyword_cluster)) * 100 / len(article_summary_to_check)
 
     @staticmethod
-    def _plot(kmeans, vectorized, prediction):
+    def _plot(kmeans, vectorized):
 
         pca_num_components = 3
         reduced_data = PCA(n_components=pca_num_components).fit_transform(vectorized.todense())
@@ -65,7 +54,7 @@ class KMeansAlgorithm(object):
         for index, instance in enumerate(reduced_data):
             pca_comp_1, pca_comp_2, pca_comp_3 = reduced_data[index]
             color = LABELS_COLOR_MAP[kmeans.labels_[index]]
-            cluster = ax.scatter(pca_comp_1, pca_comp_2, pca_comp_3, c=color)
+            cluster = ax.scatter(pca_comp_1, pca_comp_2, pca_comp_3, c=color, zorder=1)
             clusters[kmeans.labels_[index]] = cluster
             cluster_names[kmeans.labels_[index]] = 'Cluster {}'.format(kmeans.labels_[index])
 
@@ -74,7 +63,7 @@ class KMeansAlgorithm(object):
         for index, instance in enumerate(reduced_data):
             pca_comp_1, pca_comp_2, pca_comp_3 = reduced_data[index]
             # the colours don't match with the label ones
-            ax.scatter(pca_comp_1, pca_comp_2, pca_comp_3, c='r', marker='v')
+            ax.scatter(pca_comp_1, pca_comp_2, pca_comp_3, c='r', marker='v', s=100, zorder=10)
 
         plt.title('K-means flipante ')
         plt.legend(clusters.values(), cluster_names.values())
