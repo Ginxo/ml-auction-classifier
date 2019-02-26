@@ -42,7 +42,6 @@ class KMeansAlgorithm(object):
         print('Document {} has this similarities {}'.format(url,
                                                             KMeansAlgorithm._get_similarities(url, keyword_clusters)))
         KMeansAlgorithm._plot(kmeans, vectorized)
-        KMeansAlgorithm._plot_centroids(kmeans, vectorized)
 
     @staticmethod
     def _get_similarities(url, keyword_clusters):
@@ -69,16 +68,12 @@ class KMeansAlgorithm(object):
             pca_comp_1, pca_comp_2 = reduced_data[index]
             color = LABELS_COLOR_MAP[kmeans.labels_[index]]
             ax.scatter(pca_comp_1, pca_comp_2, c=color)
-        plt.show()
 
-    @staticmethod
-    def _plot_centroids(kmeans, vectorized):
         print(kmeans.cluster_centers_)
-        pca_num_components = 2
         reduced_data = PCA(n_components=pca_num_components).fit_transform(kmeans.cluster_centers_)
-        fig, ax = plt.subplots()
         for index, instance in enumerate(reduced_data):
             pca_comp_1, pca_comp_2 = reduced_data[index]
             color = LABELS_COLOR_MAP[index] # the colours don't match with the label ones
-            ax.scatter(pca_comp_1, pca_comp_2, c=color)
+            ax.scatter(pca_comp_1, pca_comp_2, c=color, marker ='v')
+
         plt.show()
