@@ -94,7 +94,7 @@ class KMeansAlgorithm(object):
         for i in range(cluster_number):
             print('Cluster {}'.format(i)),
             for ind in order_centroids[i, :10]:
-                print('Cluster {}'.format(terms[ind])),
+                print(terms[ind]),
             print('')
 
     @staticmethod
